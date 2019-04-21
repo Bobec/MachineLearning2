@@ -38,7 +38,76 @@ def makeMatrixFromDatapoints ( dataInput ):
 				myMatrix[i][j * 10 + sameDigit] = dataInput[sameDigit][j][i]
 	return myMatrix
 
+# function computing the matrix of the features of the dataPoints after we decided on the k = nr of features we want to use 
+def computeFeatureMatrix ( dataPoints ):
+	featureMatrix = np.arange(1000 * (k + 1) ).reshape(1000, k + 1)
+	s = (N, 10)
+	zMatrix = np.zeros(s)
 
+	thisDigit = -1
+	digitClass = -1
+	for sameDigit in featureData:
+		digitClass += 1
+		for digit in sameDigit:
+			thisDigit += 1
+			zMatrix[thisDigit][digitClass] = 1
+			for x in xrange(0,k):
+				featureMatrix[thisDigit][x] = digit[x]
+			featureMatrix[thisDigit][10] = 1
+
+	return (featureMatrix, zMatrix)
+
+# function that computes the matrix that contains the PCs of the entire dataSet
+def computeMatrixOfFeatures ( dataPoints, k):
+	Mat = makeMatrixFromDatapoints( dataPoints )
+	MatT = Mat.transpose();
+
+	MatAux = np.matmul(Mat, MatT)
+
+	for i in xrange(0,DIM):
+		for j in xrange(0,DIM):
+			MatAux[i][j] /= N;
+
+	#Generate the matrix decompostition. Now the matrix U contains the PCs of out dataset. We can discard as many columns as we want in order to meet the bias-variance dilemma
+	U, S, VH = np.linalg.svd(MatAux, full_matrices = True)
+
+	U = U[:, 0:k]
+	U = U.transpose()
+
+	return U
+
+#function computing Wopt of the data points sending as parameters
+def computeWopt ( dataPoints, k, alpha):
+	#first we need the matrix of the datapoints compressed on the features that we selected based on the PCA model
+	U = computeMatrixOfFeatures (dataPoints, k)
+
+	thisDigit = -1
+	for sameDigit in dataPoints:
+		thisDigit += 1
+		for digit in sameDigit:
+			featureData[thisDigit].append( np.matmul(U, digit) )
+
+	U = U.transpose()
+
+	#plotDigit( trainData[6][9])
+	#plotDigit( np.add(centerPoint, np.matmul(U, featureData[7][9]) ))
+
+	 #Now, we compute Wopt using ridge regression. We construct the matrices Fi, Fi' and Z
+
+	(featureMatrix, zMatrix) = computeFeatureMatrix(featureData)
+
+	featureMatrixT = featureMatrix.transpose()
+
+	# We use the formula 39 from LNs in order to compute Wopt
+
+	Wopt = np.true_divide(np.matmul(featureMatrixT, featureMatrix), 0.001)
+	Wopt = np.add(Wopt, np.multiply(np.identity(k + 1), alpha * alpha))
+	Wopt = np.linalg.inv( Wopt)
+	auxMatrix = np.true_divide( np.matmul(featureMatrixT, zMatrix), 0.001)
+	Wopt = np.matmul(Wopt, auxMatrix)
+	Wopt = Wopt.transpose()
+
+	return (Wopt, featureMatrix, zMatrix)
 
 trainData = [[] for x in xrange(0,10)] 
 testData = [[] for x in xrange(0,10)] 
@@ -78,63 +147,7 @@ for sameDigit in testData:
 	for digit in sameDigit:
 		testDataCentered[thisDigit].append( np.subtract(digit, centerPoint) )
 
-#plotDigit( trainData[5][5] )
-
-
-Mat = makeMatrixFromDatapoints( trainDataCentered )
-MatT = Mat.transpose();
-
-MatAux = np.matmul(Mat, MatT)
-
-for i in xrange(0,DIM):
-	for j in xrange(0,DIM):
-		MatAux[i][j] /= N;
-
-#Generate the matrix decompostition. Now the matrix U contains the PCs of out dataset. We can discard as many columns as we want in order to meet the bias-variance dilemma
-U, S, VH = np.linalg.svd(MatAux, full_matrices = True)
-
-U = U[:, 0:k]
-U = U.transpose()
-
-thisDigit = -1
-for sameDigit in trainDataCentered:
-	thisDigit += 1
-	for digit in sameDigit:
-		featureData[thisDigit].append( np.matmul(U, digit) )
-
-U = U.transpose()
-
-
-#plotDigit( trainData[6][9])
-#plotDigit( np.add(centerPoint, np.matmul(U, featureData[7][9]) ))
-
- #Now, we compute Wopt using ridge regression. We construct the matrices Fi, Fi' and Z
-
-featureMatrix = np.arange(1000 * (k + 1) ).reshape(1000, k + 1)
-s = (N, 10)
-zMatrix = np.zeros(s)
-
-thisDigit = -1
-digitClass = -1
-for sameDigit in featureData:
-	digitClass += 1
-	for digit in sameDigit:
-		thisDigit += 1
-		zMatrix[thisDigit][digitClass] = 1
-		for x in xrange(0,k):
-			featureMatrix[thisDigit][x] = digit[x]
-		featureMatrix[thisDigit][10] = 1
-
-featureMatrixT = featureMatrix.transpose()
-
-# We use the formula 39 from LNs in order to compute Wopt
-
-Wopt = np.true_divide(np.matmul(featureMatrixT, featureMatrix), 0.001)
-Wopt = np.add(Wopt, np.multiply(np.identity(k + 1), alpha * alpha))
-Wopt = np.linalg.inv( Wopt)
-auxMatrix = np.true_divide( np.matmul(featureMatrixT, zMatrix), 0.001)
-Wopt = np.matmul(Wopt, auxMatrix)
-Wopt = Wopt.transpose()
+(Wopt, featureMatrix, zMatrix) = computeWopt(trainDataCentered, k, alpha)
 
 nr = 0
 for testing in xrange(0,1000):
