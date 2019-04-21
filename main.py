@@ -38,26 +38,26 @@ def makeMatrixFromDatapoints ( dataInput ):
 				myMatrix[i][j * 10 + sameDigit] = dataInput[sameDigit][j][i]
 	return myMatrix
 
-# function computing the matrix of the features of the dataPoints after we decided on the k = nr of features we want to use 
-def computeFeatureMatrix ( dataPoints ):
+# function computing the matrix of the features of the dataPoints 
+def computeFeatureMatrix ( dataPoints, k ):
 	featureMatrix = np.arange(1000 * (k + 1) ).reshape(1000, k + 1)
 	s = (N, 10)
 	zMatrix = np.zeros(s)
 
 	thisDigit = -1
 	digitClass = -1
-	for sameDigit in featureData:
+	for sameDigit in dataPoints:
 		digitClass += 1
 		for digit in sameDigit:
 			thisDigit += 1
 			zMatrix[thisDigit][digitClass] = 1
 			for x in xrange(0,k):
 				featureMatrix[thisDigit][x] = digit[x]
-			featureMatrix[thisDigit][10] = 1
+			featureMatrix[thisDigit][k] = 1
 
 	return (featureMatrix, zMatrix)
 
-# function that computes the matrix that contains the PCs of the entire dataSet
+# function that computes the matrix that contains the PCs of the entire dataSet after we decided on the k = nr of features we want to use 
 def computeMatrixOfFeatures ( dataPoints, k):
 	Mat = makeMatrixFromDatapoints( dataPoints )
 	MatT = Mat.transpose();
@@ -94,7 +94,7 @@ def computeWopt ( dataPoints, k, alpha):
 
 	 #Now, we compute Wopt using ridge regression. We construct the matrices Fi, Fi' and Z
 
-	(featureMatrix, zMatrix) = computeFeatureMatrix(featureData)
+	(featureMatrix, zMatrix) = computeFeatureMatrix(featureData, k)
 
 	featureMatrixT = featureMatrix.transpose()
 
@@ -116,7 +116,7 @@ testDataCentered = [[] for x in xrange(0,10)]
 featureData = [[] for x in xrange(0,10)] 
 
 #values that we use as variables
-k = 10
+k = 70
 alpha = 0
 
 for x in xrange(0,2000):
