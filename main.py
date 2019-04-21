@@ -33,15 +33,16 @@ def makeMatrixFromDatapoints ( dataInput ):
 	myMatrix = np.zeros(s)
 
 	for i in xrange(0,DIM):
-		for j in xrange(0, 100):
+		for j in xrange(0, len(dataInput[0])):
 			for sameDigit in xrange(0, 10):
 				myMatrix[i][j * 10 + sameDigit] = dataInput[sameDigit][j][i]
 	return myMatrix
 
 # function computing the matrix of the features of the dataPoints 
 def computeFeatureMatrix ( dataPoints, k ):
-	featureMatrix = np.arange(1000 * (k + 1) ).reshape(1000, k + 1)
-	s = (N, 10)
+	size1 =  len(dataPoints[0]) * len(dataPoints)
+	featureMatrix = np.arange(size1 * (k + 1) ).reshape(size1, k + 1)
+	s = (size1, 10)
 	zMatrix = np.zeros(s)
 
 	thisDigit = -1
@@ -81,6 +82,9 @@ def computeWopt ( dataPoints, k, alpha):
 	#first we need the matrix of the datapoints compressed on the features that we selected based on the PCA model
 	U = computeMatrixOfFeatures (dataPoints, k)
 
+
+	featureData = [[] for x in xrange(0,10)] 
+
 	thisDigit = -1
 	for sameDigit in dataPoints:
 		thisDigit += 1
@@ -113,12 +117,12 @@ trainData = [[] for x in xrange(0,10)]
 testData = [[] for x in xrange(0,10)] 
 trainDataCentered = [[] for x in xrange(0,10)] 
 testDataCentered = [[] for x in xrange(0,10)] 
-featureData = [[] for x in xrange(0,10)] 
 
 #values that we use as variables
 k = 70
 alpha = 0
 
+#reads the data
 for x in xrange(0,2000):
 
 	stringInput = f.read(721)
@@ -133,25 +137,57 @@ for x in xrange(0,2000):
 	else: testData[digit].append(vect)
 		
 
+#finds the center of the Data set, we need it for PCA
 centerPoint = center(trainData)
 
+#centers the train data
 thisDigit = -1
 for sameDigit in trainData:
 	thisDigit += 1
 	for digit in sameDigit:
 		trainDataCentered[thisDigit].append( np.subtract(digit, centerPoint) )
 
+#centers the test data
 thisDigit = -1
 for sameDigit in testData:
 	thisDigit += 1
 	for digit in sameDigit:
 		testDataCentered[thisDigit].append( np.subtract(digit, centerPoint) )
 
-(Wopt, featureMatrix, zMatrix) = computeWopt(trainDataCentered, k, alpha)
+minResult = 100000
 
-nr = 0
-for testing in xrange(0,1000):
-	result = np.matmul( Wopt, featureMatrix[testing] )
-	if np.argmax(result) != np.argmax(zMatrix[testing]):
-		nr += 1
-print nr
+for vClass in xrange(0,10):
+	#computes the train class and the validation class for cross-validation method
+	validationClass = [[] for x in xrange(0,10)]
+	trainClass = [[] for x in xrange(0,10)]  
+
+	thisDigit = -1
+	for sameDigit in xrange(0, 10):
+		thisDigit += 1
+		for digit in xrange(0, 100):
+			if digit % 10 == vClass:
+				validationClass[thisDigit].append(trainDataCentered[thisDigit][digit])
+			else: trainClass[sameDigit].append(trainDataCentered[sameDigit][digit])
+	
+	(W, featureMatrixVal, featZMatrix) = computeWopt(validationClass, k, alpha)
+	(Wopt, featureMatrix, zMatrix) = computeWopt(trainClass, k, alpha)
+
+	nr = -1
+	result = 0
+	for element in xrange(0, 100):
+		result += math.pow(np.linalg.norm(np.subtract(featZMatrix[element], (np.matmul( Wopt, featureMatrixVal[element] )))), 2)
+	result /= 10
+
+	if minResult > result :
+		minResult = result
+		WBestOpt = Wopt
+
+
+print minResult
+print WBestOpt
+#nr = 0
+#for testing in xrange(0,1000):
+#	result = np.matmul( Wopt, featureMatrix[testing] )
+#	if np.argmax(result) != np.argmax(zMatrix[testing]):
+#		nr += 1
+#print nr
