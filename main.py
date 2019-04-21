@@ -119,7 +119,7 @@ trainDataCentered = [[] for x in xrange(0,10)]
 testDataCentered = [[] for x in xrange(0,10)] 
 
 #values that we use as variables
-k = 70
+k = 100
 alpha = 0
 
 #reads the data
@@ -154,7 +154,10 @@ for sameDigit in testData:
 	for digit in sameDigit:
 		testDataCentered[thisDigit].append( np.subtract(digit, centerPoint) )
 
-minResult = 100000
+minMSEval = 100000
+minMISSval = 100000
+minMSEtrain = 100000
+minMISStrain = 100000
 
 for vClass in xrange(0,10):
 	#computes the train class and the validation class for cross-validation method
@@ -173,21 +176,44 @@ for vClass in xrange(0,10):
 	(Wopt, featureMatrix, zMatrix) = computeWopt(trainClass, k, alpha)
 
 	nr = -1
-	result = 0
+	MISSval = 0
+	MSEval = 0
 	for element in xrange(0, 100):
-		result += math.pow(np.linalg.norm(np.subtract(featZMatrix[element], (np.matmul( Wopt, featureMatrixVal[element] )))), 2)
-	result /= 10
+		result = np.matmul( Wopt, featureMatrixVal[element] )
+		MSEval += math.pow(np.linalg.norm(np.subtract(featZMatrix[element], result)), 2)
+		if np.argmax(result) != np.argmax(featZMatrix[element]):
+			MISSval += 1
+	MSEval /= 100
 
-	if minResult > result :
-		minResult = result
+	nr = -1
+	MSEtrain = 0
+	MISStrain = 0
+	for element in xrange(0, 900):
+		result = np.matmul( Wopt, featureMatrix[element] )
+		MSEtrain += math.pow(np.linalg.norm(np.subtract(zMatrix[element], result)), 2)
+		if np.argmax(result) != np.argmax(zMatrix[element]):
+			MISStrain += 1
+	MSEtrain /= 900
+
+	if minMSEtrain > MSEtrain :
+		minMSEtrain = MSEval
+		WBestOpt = Wopt
+
+	if minMISStrain > MISStrain :
+		minMISStrain = MISStrain
+		WBestOpt = Wopt
+
+	if minMSEval > MSEval :
+		minMSEval = MSEval
+		WBestOpt = Wopt
+
+	if minMISSval > MISSval :
+		minMISSval = MISSval
 		WBestOpt = Wopt
 
 
-print minResult
-print WBestOpt
-#nr = 0
-#for testing in xrange(0,1000):
-#	result = np.matmul( Wopt, featureMatrix[testing] )
-#	if np.argmax(result) != np.argmax(zMatrix[testing]):
-#		nr += 1
-#print nr
+print minMSEval
+print minMISSval
+
+print minMSEtrain
+print minMISStrain
