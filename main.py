@@ -91,7 +91,11 @@ U, S, VH = np.linalg.svd(MatAux, full_matrices = True)
 
 print U.shape
 
+<<<<<<< HEAD
 k = 200
+=======
+k = 50
+>>>>>>> 304d0f7660866189d211741daf7d8dca1db4030a
 
 U = U[:, 0:k]
 U = U.transpose()
@@ -132,7 +136,6 @@ Wopt = np.linalg.inv( np.true_divide(np.matmul(featureMatrixT, featureMatrix), 0
 auxMatrix = np.true_divide( np.matmul(featureMatrixT, zMatrix), 0.001)
 Wopt = np.matmul(Wopt, auxMatrix)
 Wopt = Wopt.transpose()
-
 
 nr = 0
 for testing in xrange(0,1000):
