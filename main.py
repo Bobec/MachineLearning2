@@ -113,14 +113,76 @@ def computeWopt ( dataPoints, k, alpha):
 
 	return (Wopt, featureMatrix, zMatrix)
 
+def getDataToPlot (trainDataCentered, k, alpha):
+
+	minMSEval = 100000
+	minMISSval = 100000
+	minMSEtrain = 100000
+	minMISStrain = 100000
+
+	for vClass in xrange(0,10):
+		#computes the train class and the validation class for cross-validation method
+		validationClass = [[] for x in xrange(0,10)]
+		trainClass = [[] for x in xrange(0,10)]  
+
+		thisDigit = -1
+		for sameDigit in xrange(0, 10):
+			thisDigit += 1
+			for digit in xrange(0, 100):
+				if digit % 10 == vClass:
+					validationClass[thisDigit].append(trainDataCentered[thisDigit][digit])
+				else: trainClass[sameDigit].append(trainDataCentered[sameDigit][digit])
+		
+		(W, featureMatrixVal, featZMatrix) = computeWopt(validationClass, k, alpha)
+		(Wopt, featureMatrix, zMatrix) = computeWopt(trainClass, k, alpha)
+
+		nr = -1
+		MISSval = 0
+		MSEval = 0
+		for element in xrange(0, 100):
+			result = np.matmul( Wopt, featureMatrixVal[element] )
+			MSEval += math.pow(np.linalg.norm(np.subtract(featZMatrix[element], result)), 2)
+			if np.argmax(result) != np.argmax(featZMatrix[element]):
+				MISSval += 1
+		MSEval /= 100
+
+		nr = -1
+		MSEtrain = 0
+		MISStrain = 0
+		for element in xrange(0, 900):
+			result = np.matmul( Wopt, featureMatrix[element] )
+			MSEtrain += math.pow(np.linalg.norm(np.subtract(zMatrix[element], result)), 2)
+			if np.argmax(result) != np.argmax(zMatrix[element]):
+				MISStrain += 1
+		MSEtrain /= 900
+
+		if minMSEtrain > MSEtrain :
+			minMSEtrain = MSEval
+			WBestOpt = Wopt
+
+		if minMISStrain > MISStrain :
+			minMISStrain = MISStrain
+			WBestOpt = Wopt
+
+		if minMSEval > MSEval :
+			minMSEval = MSEval
+			WBestOpt = Wopt
+
+		if minMISSval > MISSval :
+			minMISSval = MISSval
+			WBestOpt = Wopt
+
+
+	return (np.log10(minMSEval), np.log10(minMISSval), np.log10(minMSEtrain), np.log10(minMISStrain))
+
 trainData = [[] for x in xrange(0,10)] 
 testData = [[] for x in xrange(0,10)] 
 trainDataCentered = [[] for x in xrange(0,10)] 
 testDataCentered = [[] for x in xrange(0,10)] 
 
 #values that we use as variables
-k = 100
-alpha = 0
+k = 90
+alpha = 10
 
 #reads the data
 for x in xrange(0,2000):
@@ -154,66 +216,26 @@ for sameDigit in testData:
 	for digit in sameDigit:
 		testDataCentered[thisDigit].append( np.subtract(digit, centerPoint) )
 
-minMSEval = 100000
-minMISSval = 100000
-minMSEtrain = 100000
-minMISStrain = 100000
+#(minMSEval, minMISSval, minMSEtrain, minMISStrain) = getDataToPlot(testDataCentered, k, alpha)
 
-for vClass in xrange(0,10):
-	#computes the train class and the validation class for cross-validation method
-	validationClass = [[] for x in xrange(0,10)]
-	trainClass = [[] for x in xrange(0,10)]  
+y = 5
+yvalsMSEtrain = np.zeros(48)
+yvalsMSEval = np.zeros(48)
+yvalsMSEISStrain = np.zeros(48)
+yvalsMISSval = np.zeros(48)
 
-	thisDigit = -1
-	for sameDigit in xrange(0, 10):
-		thisDigit += 1
-		for digit in xrange(0, 100):
-			if digit % 10 == vClass:
-				validationClass[thisDigit].append(trainDataCentered[thisDigit][digit])
-			else: trainClass[sameDigit].append(trainDataCentered[sameDigit][digit])
-	
-	(W, featureMatrixVal, featZMatrix) = computeWopt(validationClass, k, alpha)
-	(Wopt, featureMatrix, zMatrix) = computeWopt(trainClass, k, alpha)
+while y < 240:
+	(minMSEval, minMISSval, minMSEtrain, minMISStrain) = getDataToPlot(testDataCentered, y, alpha)
+	yvalsMSEval[y / 5] = minMSEval
+	yvalsMISSval[y / 5] = minMISSval
+	yvalsMSEtrain[y / 5] = minMSEtrain
+	yvalsMSEISStrain[y / 5] = minMISStrain
+	y += 5
 
-	nr = -1
-	MISSval = 0
-	MSEval = 0
-	for element in xrange(0, 100):
-		result = np.matmul( Wopt, featureMatrixVal[element] )
-		MSEval += math.pow(np.linalg.norm(np.subtract(featZMatrix[element], result)), 2)
-		if np.argmax(result) != np.argmax(featZMatrix[element]):
-			MISSval += 1
-	MSEval /= 100
+xvals = np.arange(0, 240, 5)
 
-	nr = -1
-	MSEtrain = 0
-	MISStrain = 0
-	for element in xrange(0, 900):
-		result = np.matmul( Wopt, featureMatrix[element] )
-		MSEtrain += math.pow(np.linalg.norm(np.subtract(zMatrix[element], result)), 2)
-		if np.argmax(result) != np.argmax(zMatrix[element]):
-			MISStrain += 1
-	MSEtrain /= 900
-
-	if minMSEtrain > MSEtrain :
-		minMSEtrain = MSEval
-		WBestOpt = Wopt
-
-	if minMISStrain > MISStrain :
-		minMISStrain = MISStrain
-		WBestOpt = Wopt
-
-	if minMSEval > MSEval :
-		minMSEval = MSEval
-		WBestOpt = Wopt
-
-	if minMISSval > MISSval :
-		minMISSval = MISSval
-		WBestOpt = Wopt
-
-
-print minMSEval
-print minMISSval
-
-print minMSEtrain
-print minMISStrain
+plt.plot(xvals, yvalsMSEval)
+plt.plot(xvals, yvalsMSEtrain, "r")
+plt.plot(xvals, yvalsMISSval, "b--")
+plt.plot(xvals, yvalsMSEISStrain, "r--")
+plt.show()
