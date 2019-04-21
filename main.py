@@ -42,7 +42,9 @@ def makeMatrixFromDatapoints(dataInput):
                 myMatrix[i][j * 10 + sameDigit] = dataInput[sameDigit][j][i]
     return myMatrix
 
-
+#values that we use as variables
+k = 10
+alpha = 0
 trainData = [[] for x in xrange(0, 10)]
 testData = [[] for x in xrange(0, 10)]
 trainDataCentered = [[] for x in xrange(0, 10)]
@@ -92,9 +94,6 @@ for i in xrange(0, DIM):
 # We can discard as many columns as we want in order to meet the bias-variance dilemma
 U, S, VH = np.linalg.svd(MatAux, full_matrices=True)
 
-print U.shape
-
-k = 50
 
 U = U[:, 0:k]
 U = U.transpose()
@@ -110,9 +109,9 @@ U = U.transpose()
 # plotDigit( trainData[6][9])
 # plotDigit( np.add(centerPoint, np.matmul(U, featureData[7][9]) ))
 
-# Now, we compute Wopt using plain linear regression. We construct the matrices Fi, Fi' and Z
+ #Now, we compute Wopt using ridge regression. We construct the matrices Fi, Fi' and Z
 
-featureMatrix = np.arange(1000 * (k + 1)).reshape(1000, k + 1)
+featureMatrix = np.arange(1000 * (k + 1) ).reshape(1000, k + 1)
 s = (N, 10)
 zMatrix = np.zeros(s)
 
@@ -128,10 +127,11 @@ for sameDigit in featureData:
         featureMatrix[thisDigit][10] = 1
 
 featureMatrixT = featureMatrix.transpose()
-print featureMatrixT.shape
 
-Wopt = np.linalg.inv(np.true_divide(np.matmul(featureMatrixT, featureMatrix), 0.001))
-auxMatrix = np.true_divide(np.matmul(featureMatrixT, zMatrix), 0.001)
+Wopt = np.true_divide(np.matmul(featureMatrixT, featureMatrix), 0.001)
+Wopt = np.add(Wopt, np.multiply(np.identity(k + 1), alpha * alpha))
+Wopt = np.linalg.inv( Wopt)
+auxMatrix = np.true_divide( np.matmul(featureMatrixT, zMatrix), 0.001)
 Wopt = np.matmul(Wopt, auxMatrix)
 Wopt = Wopt.transpose()
 
